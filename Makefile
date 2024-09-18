@@ -35,6 +35,7 @@ OBJS = \
 #TOOLPREFIX = 
 
 # Try to infer the correct TOOLPREFIX if not set
+TOOLPREFIX = i386-jos-elf-
 ifndef TOOLPREFIX
 TOOLPREFIX := $(shell if i386-jos-elf-objdump -i 2>&1 | grep '^elf32-i386$$' >/dev/null 2>&1; \
 	then echo 'i386-jos-elf-'; \
@@ -54,6 +55,7 @@ endif
 # QEMU = qemu-system-i386
 
 # Try to infer the correct QEMU
+QEMU = /opt/qemu_2.3.0/bin/qemu-system-i386
 ifndef QEMU
 QEMU = $(shell if which qemu > /dev/null; \
 	then echo qemu; exit; \
@@ -226,6 +228,9 @@ qemu: fs.img xv6.img
 
 qemu-memfs: xv6memfs.img
 	$(QEMU) -drive file=xv6memfs.img,index=0,media=disk,format=raw -smp $(CPUS) -m 256
+
+gdb:
+	gdb -n -x .gdbinit
 
 qemu-nox: fs.img xv6.img
 	$(QEMU) -nographic $(QEMUOPTS)

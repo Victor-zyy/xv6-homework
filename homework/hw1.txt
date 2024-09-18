@@ -1,0 +1,56 @@
+(gdb) x/24x $esp                                                                      
+1.the %esp first assigned by bootasm.S line:65
+	movl $start, %esp
+	$start is from 0x7c00 which the first sector was loaded by BIOS. 
+
+2.in x86 PC the stack grows down.
+	the esp first changed when call bootmain executed.
+	after that eip was pushed onto the stack which address is 0x7c4d pointed the next instruction after the `call bootmain`.
+
+3. some pushes and pops on the stack happened in bootmain.c a C-based language function.
+	when in bootmain.c function, 
+  8     7d2a: 55                    push   %ebp
+  7     7d2b: 89 e5                 mov    %esp,%ebp
+  6     7d2d: 57                    push   %edi
+  5     7d2e: 56                    push   %esi
+  4     7d2f: 53                    push   %ebx
+  3     7d30: 83 ec 2c              sub    $0x2c,%esp
+	but thoes registers pushed on the stack are all zero
+
+	0x2c = 44bytes in dec. for local variables such as uchar and subfunction calls.
+	and then %esp holds 0x7bc0 value.
+	
+4. finally get the running address of kernel from the elf header, then jump to it.
+	387   entry = (void(*)(void))(elf->entry);
+  1   entry();
+  2     7db2: ff 15 18 00 01 00     call   *0x10018
+  3 }
+  4     7db8: 83 c4 2c              add    $0x2c,%esp
+  5     7dbb: 5b                    pop    %ebx
+
+	after that, the eip is pushed on the stack, so the last value pushed is 0x7db8 which is the next instruction after call.
+
+0x7bbc: 0x00007db8      
+				0x00107000      	 <----- %esp new value 0x7bc0
+				0x00002516      
+				0x00008000                
+0x7bcc: 0x00000000      
+				0x00000000      
+				0x00000000      
+				0x00000000                
+0x7bdc: 0x00010074      
+				0x00000000      
+				0x00000000      
+				0x00000000
+0x7bec: 0x00000000    			<----- bootmain.c: %ebx  
+				0x00000000      		<----- bootmain.c: %esi
+				0x00000000     			<----- bootmain.c: %edi 
+				0x00000000					<----- bootmain.c: %ebp
+0x7bfc: 0x00007c4d      		<----- first changed
+				0x8ec031fa      		<----- 0x7c00
+				0x8ec08ed8      
+				0xa864e4d0
+0x7c0c: 0xb0fa7502      
+				0xe464e6d1      
+				0x7502a864      
+				0xe6dfb0fa
