@@ -1,0 +1,14 @@
+1. strace
+	 syscall.c add cprintf function to print the sys_call name and the return vallue
+
+2. date syscall
+
+	syscall number -> syscall.h file
+	syscall date function -> syscall.c file 
+	syscall date function defination -> sysproc.c file 
+						need to get the argument using argptr to get the struct pointer
+	user level:
+			user.h file date(struct rtcdate *) declaration
+			usys.S register syscall it's kind of defination using assembly language
+	
+

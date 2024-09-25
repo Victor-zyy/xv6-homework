@@ -29,13 +29,12 @@ OBJS = \
 	vm.o\
 
 # Cross-compiling (e.g., on Mac OS X)
-# TOOLPREFIX = i386-jos-elf
+TOOLPREFIX = i386-jos-elf-
 
 # Using native tools (e.g., on X86 Linux)
 #TOOLPREFIX = 
 
 # Try to infer the correct TOOLPREFIX if not set
-TOOLPREFIX = i386-jos-elf-
 ifndef TOOLPREFIX
 TOOLPREFIX := $(shell if i386-jos-elf-objdump -i 2>&1 | grep '^elf32-i386$$' >/dev/null 2>&1; \
 	then echo 'i386-jos-elf-'; \
@@ -52,10 +51,10 @@ TOOLPREFIX := $(shell if i386-jos-elf-objdump -i 2>&1 | grep '^elf32-i386$$' >/d
 endif
 
 # If the makefile can't find QEMU, specify its path here
-#QEMU = qemu-system-i386
+# QEMU = qemu-system-i386
 
 # Try to infer the correct QEMU
-QEMU = /opt/qemu_2.3.0/bin/qemu-system-i386
+ QEMU = /opt/qemu_2.3.0/bin/qemu-system-i386
 ifndef QEMU
 QEMU = $(shell if which qemu > /dev/null; \
 	then echo qemu; exit; \
@@ -183,6 +182,7 @@ UPROGS=\
 	_usertests\
 	_wc\
 	_zombie\
+	_date\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
@@ -219,7 +219,7 @@ QEMUGDB = $(shell if $(QEMU) -help | grep -q '^-gdb'; \
 	then echo "-gdb tcp::$(GDBPORT)"; \
 	else echo "-s -p $(GDBPORT)"; fi)
 ifndef CPUS
-CPUS := 1
+CPUS := 2
 endif
 QEMUOPTS = -drive file=fs.img,index=1,media=disk,format=raw -drive file=xv6.img,index=0,media=disk,format=raw -smp $(CPUS) -m 512 $(QEMUEXTRA)
 
@@ -228,9 +228,6 @@ qemu: fs.img xv6.img
 
 qemu-memfs: xv6memfs.img
 	$(QEMU) -drive file=xv6memfs.img,index=0,media=disk,format=raw -smp $(CPUS) -m 256
-
-gdb:
-	gdb -n -x .gdbinit
 
 qemu-nox: fs.img xv6.img
 	$(QEMU) -nographic $(QEMUOPTS)
