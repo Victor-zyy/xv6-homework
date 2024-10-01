@@ -104,6 +104,7 @@ extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
 extern int sys_date(void);
+extern int sys_dup2(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -128,6 +129,7 @@ static int (*syscalls[])(void) = {
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
 [SYS_date]    sys_date,
+[SYS_dup2]    sys_dup2,
 };
 
 char *sys_name[] = {
@@ -153,6 +155,7 @@ char *sys_name[] = {
 [SYS_mkdir]   "mkdir",
 [SYS_close]   "close",
 [SYS_date]    "date",
+[SYS_dup2]    "dup2",
 };
 
 
@@ -165,9 +168,9 @@ syscall(void)
   num = curproc->tf->eax;
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
     curproc->tf->eax = syscalls[num]();
-		//HW System call Part one
 		//cprintf("%s -> %d \n",sys_name[num], curproc->tf->eax);
-		// Optional Challenge is add cprintf in every function in sys_file.c
+		//HW System call Part one
+		//Optional Challenge get arguments
   } else {
     cprintf("%d %s: unknown sys call %d\n",
             curproc->pid, curproc->name, num);
