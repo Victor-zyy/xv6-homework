@@ -52,22 +52,6 @@ fdalloc(struct file *f)
   return -1;
 }
 
-static void
-fdalloc2(struct file *f, int new_fd)
-{
-  struct proc *curproc = myproc();
-
-    if(curproc->ofile[new_fd] == 0){
-      curproc->ofile[new_fd] = f;
-    }else{
-			//silently closed must atomically not interrupted by others
-  		begin_op();
-			fileclose(curproc->ofile[new_fd]);
-      curproc->ofile[new_fd] = f;
-  		end_op();
-		}
-}
-
 
 int
 sys_dup(void)
@@ -463,17 +447,31 @@ sys_pipe(void)
 int
 sys_dup2(void)
 {
-  struct file *f;
+  struct file *f_old, *f_new;
   int new_fd;
   int old_fd;
-  if(argfd(0, &old_fd, &f) < 0)
+  struct proc *curproc = myproc();
+
+  if(argfd(0, &old_fd, &f_old) < 0)
     return -1;
 	
-	if(argint(1, &new_fd) < 0)
+	//Note:
+	if(old_fd < 0 || old_fd > NOFILE){
+			return -1;
+	}
+		
+	if(argfd(1, &new_fd, &f_new) < 0)
 		return -1;
 
-	fdalloc2(f, new_fd);
 	
-  filedup(f);
+	if(old_fd == new_fd){
+		// does nothing
+		return new_fd;
+	}
+	
+	curproc->ofile[new_fd] = f_old; //closed
+	curproc->ofile[old_fd] = 0;
+	fileclose(f_new);
+
   return new_fd;
 }
