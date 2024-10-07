@@ -16,10 +16,8 @@ main(void)
     mknod("console", 1, 1);
     open("console", O_RDWR);
   }
-  //dup(0);  // stdout
-  dup2(1,0);  // stdout
-  //dup(0);  // stderr
-  dup2(2,0);  // stdout
+  dup(0);  // stdout
+  dup(0);  // stderr
 
   for(;;){
     printf(1, "init: starting sh\n");
