@@ -65,6 +65,7 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
 
   a = (char*)PGROUNDDOWN((uint)va);
   last = (char*)PGROUNDDOWN(((uint)va) + size - 1);
+  //cprintf("a = 0x%x last = 0x%x size = 0x%x\n", a, last, size);
   for(;;){
     if((pte = walkpgdir(pgdir, a, 1)) == 0)
       return -1;
@@ -291,6 +292,11 @@ freevm(pde_t *pgdir)
   deallocuvm(pgdir, KERNBASE, 0);
   for(i = 0; i < NPDENTRIES; i++){
     if(pgdir[i] & PTE_P){
+      cprintf("pgdir[%d] = 0x%x\n", i, pgdir[i]);
+      if(pgdir[i] & PTE_COW){
+	  cprintf("get here\n");
+          continue;
+      }
       char * v = P2V(PTE_ADDR(pgdir[i]));
       kfree(v);
     }
@@ -326,10 +332,19 @@ copyuvm(pde_t *pgdir, uint sz)
     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
       panic("copyuvm: pte should exist");
     if(!(*pte & PTE_P)) // not allocated memory but marked in sbrk
-			continue;
+      continue;
     pa = PTE_ADDR(*pte);
-		cprintf("i = 0x%x pa = 0x%x\n", i, pa);
-		//set AVL value to mark COW mappings
+    //map the stack
+    if(i + PGSIZE >= sz){
+       char *mem = kalloc();
+       memmove(mem, (char *)P2V(pa), PGSIZE);
+       mappages(d, (void*)i, PGSIZE, V2P(mem), PTE_U | PTE_W);
+       continue;
+    }
+    //set AVL COW of PDE entry
+    cprintf("PDX(0x%x) = %d\n", i, PDX(i));
+    d[PDX(i)] |= PTE_COW;
+    //set AVL value to mark COW mappings
     if(mappages(d, (void*)i, PGSIZE, pa, PTE_U | PTE_COW) < 0) {
       goto bad;
     }

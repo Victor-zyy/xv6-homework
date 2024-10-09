@@ -49,43 +49,40 @@ trap(struct trapframe *tf)
     return;
   }
 
-	if(tf->trapno == T_PGFLT) {
-	 // page fault handle
-	 // page fault addr cr2 hardware 
-		uint va = rcr2();
-		int write = (tf->err & 0x02 ) > 0;
-		cprintf("Pid:%d addr 0x%x Page Fault 0x%x wirte %d %x\n", tf->eip, myproc()->pid, va, write, myproc()->sz);
-		va = PGROUNDDOWN(va);
-		if(va < myproc()->sz){
-			if(write){
-				int ret;
-				static int i = 0;
-				char *mem = kalloc();
-				pte_t * Pte = walkpgdir(myproc()->pgdir, (char *)va, 0);	
-				if(mem == 0)
-					cprintf("allocmem error\n");
-				memset(mem, 0, PGSIZE);
-				// copy on write
-				if(*Pte & PTE_COW){
-					uint pa = PTE_ADDR(*Pte);
-					char * mem = kalloc();
-					*Pte &= ~PTE_P;
-					memmove(mem, (char *)P2V(pa), PGSIZE);
-
-					ret = mappages(myproc()->pgdir, (char *)va, PGSIZE, V2P(mem), PTE_W | PTE_U);
-					i++;
-					if(i == 2)
-						panic("error");
-					return;
-				}
-				panic("error");
-				ret = mappages(myproc()->pgdir, (char *)va, PGSIZE, V2P(mem), PTE_W | PTE_U);
-				if(ret < 0)
-					cprintf("mapping error\n");
-				return;
-			}
-		}
+  if(tf->trapno == T_PGFLT) {
+   // page fault handle
+   // page fault addr cr2 hardware 
+    uint va = rcr2();
+    struct proc *curproc = myproc();
+    int write = (tf->err & 0x02 ) > 0;
+    //cprintf("Pid:%d addr 0x%x Page Fault 0x%x wirte %d %x\n", curproc->pid, tf->eip, va, write, curproc->sz);
+    va = PGROUNDDOWN(va);
+    if(va < curproc->sz){
+      if(write){
+	int ret;
+	char *mem = kalloc();
+	pte_t * Pte = walkpgdir(curproc->pgdir, (char *)va, 0);	
+	if(mem == 0)
+	  cprintf("allocmem error\n");
+	memset(mem, 0, PGSIZE);
+	// copy on write
+	if(*Pte & PTE_COW){
+	  uint pa = PTE_ADDR(*Pte);
+	  char * mem = kalloc();
+	  *Pte &= ~PTE_P;
+	  memmove(mem, (char *)P2V(pa), PGSIZE);
+          ret = mappages(curproc->pgdir, (char *)va, PGSIZE, V2P(mem), PTE_W | PTE_U);
+	  switchuvm(curproc);
+	  return;
 	}
+	//panic("error");
+	ret = mappages(curproc->pgdir, (char *)va, PGSIZE, V2P(mem), PTE_W | PTE_U);
+	if(ret < 0)
+	  cprintf("mapping error\n");
+	return;
+      }
+    }
+  }
 
 
 

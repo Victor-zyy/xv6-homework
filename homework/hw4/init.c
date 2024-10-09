@@ -24,13 +24,14 @@ main(int argc, char *argv[])
     printf(1, "init: starting sh\n");
     pid = fork();
 
-		printf(1, "fork pid = %d\n", pid);
+    printf(1, "fork pid = %d\n", pid);
 		
     if(pid < 0){
       printf(1, "init: fork failed\n");
       exit();
     }
     if(pid == 0){
+      //while(1);
       exec("sh", argv);
       printf(1, "init: exec sh failed\n");
       exit();
