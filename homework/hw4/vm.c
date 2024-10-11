@@ -269,6 +269,9 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
     if(!pte)
       a = PGADDR(PDX(a) + 1, 0, 0) - PGSIZE;
     else if((*pte & PTE_P) != 0){
+      if((*pte & PTE_COW) != 0){
+         continue;
+      }
       pa = PTE_ADDR(*pte);
       if(pa == 0)
         panic("kfree");
@@ -292,11 +295,6 @@ freevm(pde_t *pgdir)
   deallocuvm(pgdir, KERNBASE, 0);
   for(i = 0; i < NPDENTRIES; i++){
     if(pgdir[i] & PTE_P){
-      cprintf("pgdir[%d] = 0x%x\n", i, pgdir[i]);
-      if(pgdir[i] & PTE_COW){
-	  cprintf("get here\n");
-          continue;
-      }
       char * v = P2V(PTE_ADDR(pgdir[i]));
       kfree(v);
     }
@@ -342,8 +340,6 @@ copyuvm(pde_t *pgdir, uint sz)
        continue;
     }
     //set AVL COW of PDE entry
-    cprintf("PDX(0x%x) = %d\n", i, PDX(i));
-    d[PDX(i)] |= PTE_COW;
     //set AVL value to mark COW mappings
     if(mappages(d, (void*)i, PGSIZE, pa, PTE_U | PTE_COW) < 0) {
       goto bad;
