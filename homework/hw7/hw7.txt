@@ -1,0 +1,25 @@
+1. if we call acquire twice the machine will panic
+
+2. stack trace
+	0x80103d63: acquire
+	0x80101e74: ideintr()
+	0x80104f89: trap()
+	0x80104dad: alltraps
+	0x8010015a: bread-->iderw
+	0x801017f5: readi
+	0x80101a60: dirlookup 
+	0x80101ba4: namex
+	0x80101d2b: namei
+	0x801008fb: exec
+
+The direct reason is acquire find the holding lock of idelock
+we turn on the interrupt, 
+The cpu is running the exec proc, but there is only one process, the ide is done for read, but the int is on, so when wakeup exec proc which holds the lock, so ideintr reacquire the lock panic fault.
+
+
+3. Why this doesn't panic
+
+filealloc called by sys_open and pipe_alloc if the interrupt is comming, they don't have to acquire the filetable, only if the syscall, but the syscall is soft exception which called by user, now we are in kernel exectutes the filealloc. It doesn't matter
+
+
+4. if we clear after the lk->locked, there may be a process runs parallel , then calles the acquire and finally called holding, it seems that lock->locked is cleared,but lock->cpu is not clear, so the concurrent process won't get the clock, so panic
